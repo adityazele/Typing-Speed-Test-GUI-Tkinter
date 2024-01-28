@@ -1,7 +1,7 @@
 # similar service https://typing-speed-test.aoeu.eu/ (Business)
 
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 paragraph = '''In the digital age, information flows seamlessly across the vast expanse of the internet. The speed of
 communication has reshaped how we connect, share, and collaborate. Social media platforms amplify our voices, creating a
@@ -15,8 +15,12 @@ modified_paragraph = paragraph.replace('\n', ' ')
 
 
 def match_text(event):
-    global pos
+    global pos, correct, wrong, first_key
+
     if not (event.keysym.startswith('Shift') or event.keysym == 'Caps_Lock'):
+        if first_key:
+            first_key = False
+            start_timer()
         typed_text = type_box.get('1.0', 'end-1c')
         if typed_text[-1] == ' ':
             space()
@@ -26,10 +30,12 @@ def match_text(event):
                     text_box.tag_add('correct', f'1.{pos}')
                     text_box.tag_config('correct', foreground='green')
                     print(f'1.{pos} is colored green')
+                    correct += 1
                 else:
                     text_box.tag_add('wrong', f'1.{pos}')
                     text_box.tag_config('wrong', foreground='red')
                     print(f'1.{pos} is colored red')
+                    wrong += 1
                 pos += 1
 
 
@@ -39,9 +45,14 @@ def space():
     text_box.tag_remove('highlight', f'1.{pos_l}', f'1.{pos_u}')
     char += 1
     total_len += len(original_text[char-1]) + 1
+    print(total_len)
     pos_l = total_len
     pos = pos_l
-    highlight_text()
+    if char < total_char:
+        highlight_text()
+    else:
+        messagebox.showinfo('Test Complete', f'Congratulations! Your typing test is complete\n correct: {correct} wrong: {wrong}')
+        root.quit()
 
 
 def highlight_text():
@@ -51,7 +62,17 @@ def highlight_text():
     text_box.tag_add('highlight', f'1.{pos_l}', f'1.{pos_u}')
     text_box.tag_config('highlight', background='yellow')
     highlighted_text = text_box.get(f'1.{pos_l}', f'1.{pos_u}')
-    print(f'{highlighted_text} [1.{pos_l} - 1.{pos_u}] is highlighted')
+
+
+def start_timer():
+    t = int(time_box.get('1.0', 'end-1c'))
+    if t > 0:
+        time_box.delete('1.0', 'end-1c')
+        time_box.insert('1.0', f'{t-1}')
+        root.after(1000, start_timer)
+    else:
+        messagebox.showinfo('Test Complete', f'Congratulations! Your typing test is complete\n correct: {correct} wrong: {wrong}')
+        root.quit()
 
 
 root = Tk()
@@ -60,9 +81,16 @@ root.title('Typing Speed Test')
 frm = ttk.Frame(root, padding=10)
 frm.grid()
 
+time_label = Label(frm, text='time left')
+time_label.grid(row=0, column=0, padx=(0,40))
+
+time_box = Text(frm, width=2, height=1)
+time_box.grid(row=0, column=0, padx=(40, 0))
+time_box.insert('1.0', '60')
+
 text_box = Text(frm, wrap=WORD, width=70, height=11)
 text_box.insert('1.0', modified_paragraph)
-text_box.grid(row=0, column=0)
+text_box.grid(row=1, column=0)
 
 original_text = text_box.get('1.0', 'end-1c').split()
 
@@ -71,10 +99,14 @@ pos_l = 0
 pos_u = 0
 pos = 0
 total_len = 0
+correct = 0
+wrong = 0
+first_key = True
+total_char = len(original_text)
 highlight_text()
 
 type_box = Text(frm, width=70, height=1)
-type_box.grid(row=1, column=0)
+type_box.grid(row=2, column=0)
 type_box.bind('<KeyRelease>', match_text)
 
 root.mainloop()
